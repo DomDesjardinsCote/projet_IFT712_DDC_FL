@@ -6,6 +6,7 @@ import math
 import numpy as np
 import os
 
+
 class DataManager:
     def __init__(self, nb_train, nb_test, normalisation=True, bias=True):
         self.nb_train = nb_train
@@ -30,7 +31,7 @@ class DataManager:
         if self.bias:
             X_ = augment(X_)
 
-        idx = np.random.permutation(len(X_Norm))
+        idx = np.random.permutation(len(X_))
 
         train_idx = idx[:self.nb_train]
         test_idx = idx[-self.nb_test:]
@@ -39,6 +40,7 @@ class DataManager:
         y_train = y_[train_idx]
         X_test = X_[test_idx]
         y_test = y_[test_idx]
+
         return X_train, y_train, X_test, y_test
 
 def augment(X):
