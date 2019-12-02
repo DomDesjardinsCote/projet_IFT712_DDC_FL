@@ -21,6 +21,7 @@ from sklearn import tree            # Decision Tree Classifier
 from sklearn.svm import SVC         # SVM Classifier
 import random
 import math
+import sklearn.linear_model
 
 
 class ModelSVM:
@@ -232,3 +233,35 @@ class ModelDecisionTree:
         else:
             return 1
 
+        print("Error Model 1...")
+
+class Perceptron:
+    def __init__(self, num_features, num_classes, lamb=0.0001):
+        self.w = np.zeros((num_classes, num_features))
+        self.lamb = lamb
+        self.model = None
+
+    def train(self, x_train, y_train):
+        print y_train.shape
+        self.model = sklearn.linear_model.Perceptron(penalty='l2', alpha=self.lamb)
+        self.model.fit(x_train, y_train)
+        self.w = self.model.coef_
+        print ('w = ', self.w)
+        accuracy_train = self.model.score(x_train, y_train)
+        print accuracy_train
+
+    
+    def prediction(self, x):
+        if len(x.shape)==1:
+            x = np.reshape(x, (1, x.shape[0]))
+        predict = self.model.predict(x)
+
+        return predict
+
+    def erreur_perceptron(self, x, y):
+        y = int(y)
+        prediction = int(self.prediction(x))
+
+        score_bad_class = np.dot(self.w[prediction], x)
+        score_good_class = np.dot(self.w[y], x)
+        return score_bad_class - score_good_class
