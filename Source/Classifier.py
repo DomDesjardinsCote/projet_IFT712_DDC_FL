@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+# Execution in terminal :
+#            python Classifier.py model_type validation
+#            Example : python Classifier.py 1 1
+#
+
+
 import numpy as np
 import sys
 #import DataManager as DM      ## remove comment when it's work##
@@ -20,10 +26,13 @@ def main():
 
     # Load database
     print("TODO : Loading Database...")
+    x = np.zeros(1)
+    t = np.zeros(1)
 
+    md = None
     # Selection of the model
     if type_model == 1:
-        print("TODO : Selecting model 1...")
+        md = Model.Model1()
     elif type_model == 2:
         print("TODO : Selecting model 2...")
     elif type_model == 3:
@@ -37,9 +46,9 @@ def main():
 
     # Training of the model
     if cross_val is False:
-        print("TODO : Training without cross-validation... ")
+        md.train(x, t)
     else:
-        print("TODO : Training with cross-validation")
+        md.cross_validation(x, t)
 
     # Compute Train / Test
     print("TODO : Train error = ...")
