@@ -40,7 +40,7 @@ class ModelSVM:
     def train(self, x, t):
         """
         Training the SVM model with the data.
-        :param x: A numpy array of the data
+        :param x: A numpy array of the dataset
         :param t: A numpy array of the classes
         Comments : Remove self.w and self.w_0?
         """
@@ -63,7 +63,7 @@ class ModelSVM:
         :param x: One sample of data
         :return:  The predict classes from the SVM model.
         """
-        t = self.mod.predict(x)
+        t = self.mod.predict(x.reshape(1, -1))
         return t
 
     def error(self, x, t):
@@ -75,6 +75,51 @@ class ModelSVM:
         :param t : Class of the sample data
         """
         predict = self.mod.predict(x.reshape(1, -1))
+        if t == predict:
+            return 0
+        else:
+            return 1
+
+
+class ModelDecisionTree:
+    def __init__(self):
+        """
+        Initialize the model of a Decision Tree Classifier
+        TODO : Need to check which parameters are important
+        """
+        print("Initialize the model Decision Tree Classifier... ")
+        self.mod = tree.DecisionTreeClassifier(max_depth=20)
+
+    def train(self, x, t):
+        """
+        Training the model of a Decision Tree Classifier
+        :param x: A numpy array of the dataset
+        :param t: A numpy array of a classes of the dataset.
+        """
+        print("Training the model Decision Tree Classifier...")
+        self.mod.fit(x, t)
+
+    def cross_validation(self, x, t):
+        print("Cross validation of the Decision Tree Classifier'")
+
+    def prediction(self, x):
+        """
+        Prediction of a class from one sample of data.
+        :param x: One sample of data.
+        :return: Predict the class the sample of data
+        """
+        self.mod.predict(x.reshape(1, -1))
+
+    def error(self, x, t):
+        """
+        Compute the error between the predicted class and the class from data
+        if is not the same class : return 0
+        if is the same class   : return 1
+        :param x : One sample of data
+        :param t : Class of the sample data
+        """
+        predict = self.mod.predict(x.reshape(1, -1))
+
         if t == predict:
             return 0
         else:
