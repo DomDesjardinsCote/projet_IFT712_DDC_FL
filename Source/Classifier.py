@@ -5,15 +5,16 @@
 #            Example : python Classifier.py 1 1
 #
 
-
+import matplotlib.pyplot as plot
 import numpy as np
 import sys
-import DataManager as DM      ## remove comment when it's work##
+
+import DataManager as DM
 import Model
 import Utils
+
 from sklearn.svm import SVC
-import matplotlib.pyplot as plot
-from DataManager import DataManager
+
 
 def main():
 
@@ -33,24 +34,36 @@ def main():
     perf_model = bool(int(sys.argv[4]))
 
     # Load database
-    my_data = DataManager(1000, 1000)
-    x_train, y_train, x_test, y_test = my_data.generer_donnees()
+    print("Loading Database")
+    dm = DM.DataManager(200, 100, normalisation=False)
+    x_train, t_train, x_test, t_test = dm.generer_donnees()
+
+    # Deep layer
+    num_layer = 20
+    num_neural_per_layer = 400
+    layer_sizes = (num_neural_per_layer,)*num_layer
+    Specific_tuple = (200,)
+    Specific_tuple2 = (200, 400, 620,56,57,58,59,50,59,58,57,356, 600)
 
     md = None
     title = None
     # Selection of the model
     if type_model == 1:
-        print("TODO : Selecting model 1...")
+        print("Selecting Perceptron")
         title = "Model 1"
-    elif type_model == 2:
-        title = "Model 2"
         md = Model.Perceptron(55,7)
+    elif type_model == 2:
+        print("Selecting MLPerceptron")
+        title = "Model 2"
+        md = Model.MLPerceptron(55, Specific_tuple, 7)
     elif type_model == 3:
-        md = Model.ModelDecisionTree()
+        print("Selecting Decision Tree")
         title = "Model 3"
+        md = Model.ModelDecisionTree()
     elif type_model == 4:
-        md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
+        print("Selecting SVM")
         title = "Model 4"
+        md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
     elif type_model == 5:
         print("TODO : Selecting model 5...")
         title = "Model 5"
@@ -65,27 +78,27 @@ def main():
 
     # Training of the model
     if cross_val is False:
-        md.train(x_train, y_train)
+        md.train(x_train, t_train)
     else:
-        md.cross_validation(x_train, y_train)
+        md.cross_validation(x_train, t_train)
 
     # Compute Train / Test
     # Prediction on the train dataset and the test dataset
     predictions_entrainement = np.array([md.prediction(x) for x in x_train])
-    train_error = np.sum([md.error(x, t) for (x, t) in zip(x_train, y_train)])
-    print("Train error = ", 100*train_error/len(y_train), "%")
+    train_error = np.sum([md.error(x, t) for (x, t) in zip(x_train, t_train)])
+    print("Train error = ", 100*train_error/len(t_train), "%")
     predictions_test = np.array([md.prediction(x) for x in x_test])
-    test_error = np.sum([md.error(x, t) for (x, t) in zip(x_test, ty_test)])
-    print("Test error = ", 100*test_error/len(y_test), "%")
+    test_error = np.sum([md.error(x, t) for (x, t) in zip(x_test, t_test)])
+    print("Test error = ", 100*test_error/len(t_test), "%")
 
     analyzer = Utils.ModelAnalyzer()
 
     if eval_model is True:
         print(analyzer.confusionMatrix(t_test, predictions_test))
-        print("The accuracy is : ", analyzer.accuracy(y_test, predictions_test))
+        print("The accuracy is : ", analyzer.accuracy(t_test, predictions_test))
 
     x = np.append(x_train, x_test, axis=0)
-    t = np.append(y_train, y_test)
+    t = np.append(t_train, t_test)
 
     if perf_model is True:      # Change parameter for the exemple
         plt = analyzer.plotLearningCurves(md.mod, x, t, title=title)

@@ -16,12 +16,15 @@
     def error(self, x, t):
         pass
 """
-import numpy as np
-from sklearn import tree            # Decision Tree Classifier
-from sklearn.svm import SVC         # SVM Classifier
-import random
 import math
+import numpy as np
+import random
+
+from sklearn import tree
+from sklearn.svm import SVC
 import sklearn.linear_model
+import sklearn.metrics
+import sklearn.neural_network
 
 
 class ModelSVM:
@@ -235,22 +238,17 @@ class ModelDecisionTree:
 
         print("Error Model 1...")
 
+
 class Perceptron:
     def __init__(self, num_features, num_classes, lamb=0.0001):
-        self.w = np.zeros((num_classes, num_features))
         self.lamb = lamb
         self.model = None
 
     def train(self, x_train, y_train):
-        print y_train.shape
         self.model = sklearn.linear_model.Perceptron(penalty='l2', alpha=self.lamb)
         self.model.fit(x_train, y_train)
-        self.w = self.model.coef_
-        print ('w = ', self.w)
         accuracy_train = self.model.score(x_train, y_train)
-        print accuracy_train
 
-    
     def prediction(self, x):
         if len(x.shape)==1:
             x = np.reshape(x, (1, x.shape[0]))
@@ -261,7 +259,145 @@ class Perceptron:
     def erreur_perceptron(self, x, y):
         y = int(y)
         prediction = int(self.prediction(x))
-
-        score_bad_class = np.dot(self.w[prediction], x)
-        score_good_class = np.dot(self.w[y], x)
+        #score_bad_class = np.dot(self.w[prediction-1], x)
+        #score_good_class = np.dot(self.w[y-1], x)
         return score_bad_class - score_good_class
+
+    def cross_validation(self, X, y, k_fold=10):
+        best_accuracy = 0.0
+        N = X.shape[0]
+        N_train = int(math.floor(0.8 * N))
+
+        min_lamb = 0.000000001
+        max_lamb = 2.0
+        log_min_lamb = math.log(min_lamb)
+        log_max_lamb = math.log(max_lamb)
+        lamb_list = np.logspace(log_min_lamb, log_max_lamb, num=100, base=math.e)
+
+        best_lamb = self.lamb
+
+        for lamb in lamb_list:
+            self.lamb = lamb
+            print self.lamb
+            accuracy = np.zeros((k_fold))
+            for i in range(k_fold):
+                map_index = list(zip(X, y))
+                random.shuffle(map_index)
+                random_X, random_y = zip(*map_index)
+
+                train_X = np.array(random_X[:N_train])
+                valid_X = random_X[N_train:]
+                train_y = np.array(random_y[:N_train])
+                valid_y = random_y[N_train:]
+
+                self.train(train_X, train_y)
+                accuracy[i] = self.model.score(valid_X, valid_y)
+
+            mean_accuracy = np.mean(accuracy)
+            print mean_accuracy
+            if mean_accuracy > best_accuracy:
+                best_accuracy = mean_accuracy
+                best_lamb = self.lamb
+        self.lamb = best_lamb
+        self.train(X, y)
+        print "best lamb", best_lamb
+        print "best accuracy", best_accuracy
+        print "Result train accuracy:", self.model.score(X, y)
+        prediction = self.prediction(X)
+        Confusion_M = sklearn.metrics.confusion_matrix(y, prediction)
+        print "Confusion matrix:", Confusion_M
+
+
+class MLPerceptron:
+    def __init__(self, num_features, hidden_layer_sizes, num_classes, activation='relu', reg=0.0001):
+        self.reg = reg
+        self.hidden_layer_sizes = hidden_layer_sizes
+        self.model = None
+        self.activation = activation
+
+    def train(self, x_train, y_train):
+        self.model = sklearn.neural_network.MLPClassifier(self.hidden_layer_sizes,
+                                                        activation=self.activation,
+                                                        alpha=self.reg, max_iter=1000)
+        self.model.fit(x_train, y_train)
+        accu = self.model.score(x_train, y_train)
+        print "Result train accuracy:", self.model.score(x_train, y_train)
+        prediction = self.prediction(x_train)
+        Confusion_M = sklearn.metrics.confusion_matrix(y_train, prediction)
+        print "Confusion matrix:", Confusion_M
+        #print accu
+
+    def prediction(self, x):
+        if len(x.shape)==1:
+            x = np.reshape(x, (1, x.shape[0]))
+        return self.model.predict(x)
+    
+    def erreur(self, x, y):
+        if len(x.shape)==1:
+            x = np.reshape(x, (1, x.shape[0]))
+        y = int(y)
+        prediction = int(self.prediction(x))
+        W = self.model.coefs_
+        x_prime = np.dot(x, W[0])
+        x_prime_prime = np.maximum(x_prime, 0)
+        print "x'", x_prime
+        print "x''", x_prime_prime
+        out = np.dot(x_prime_prime, W[1])
+        summ = np.sum(out, axis=1)
+        print "summ", summ
+        print out, out.shape
+        out_2 = out / summ
+        print out_2
+        print W[1].shape
+        print W[0].shape
+        print len(W)
+        soft_predict = self.model.predict_proba(x)
+        print "True prediction", y
+        print "prediction", prediction
+        print "soft_predict", soft_predict
+        return
+
+    def cross_validation(self, X, y, k_fold=5):
+        best_accuracy = 0.0
+        N = X.shape[0]
+        N_train = int(math.floor(0.8 * N))
+
+        min_lamb = 0.000000001
+        max_lamb = 2.0
+        log_min_lamb = math.log(min_lamb)
+        log_max_lamb = math.log(max_lamb)
+        lamb_list = np.logspace(log_min_lamb, log_max_lamb, num=10, base=math.e)
+
+        best_lamb = self.reg
+
+        for lamb in lamb_list:
+            print "lamb", lamb
+            self.reg = lamb
+            accuracy = np.zeros((k_fold))
+            for i in range(k_fold):
+                map_index = list(zip(X, y))
+                random.shuffle(map_index)
+                random_X, random_y = zip(*map_index)
+
+                train_X = np.array(random_X[:N_train])
+                valid_X = random_X[N_train:]
+                train_y = np.array(random_y[:N_train])
+                valid_y = random_y[N_train:]
+
+                self.train(train_X, train_y)
+                accuracy[i] = self.model.score(valid_X, valid_y)
+                
+
+            mean_accuracy = np.mean(accuracy)
+            if mean_accuracy > best_accuracy:
+                best_accuracy = mean_accuracy
+                best_lamb = self.reg
+            print mean_accuracy
+        self.reg = best_lamb
+        self.train(X, y)
+        print "best lamb", best_lamb
+        print "best accuracy", best_accuracy
+        print "Result train accuracy:", self.model.score(X, y)
+        prediction = self.prediction(X)
+        Confusion_M = sklearn.metrics.confusion_matrix(y, prediction)
+        print "Confusion matrix:", Confusion_M
