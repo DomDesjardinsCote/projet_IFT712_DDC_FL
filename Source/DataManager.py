@@ -17,7 +17,8 @@ class DataManager:
     def generer_donnees(self):
         base_dir = os.path.join( os.path.dirname ( __file__), '..' )
         csv = pd.read_csv(base_dir + "/Database/train.csv")
-        data = np.array(csv, dtype=np.int)
+        data = np.array(csv, dtype=np.int).astype(np.float)
+        
 
         X_ = data[:,1:-1]
         y_ = data[:,-1:]

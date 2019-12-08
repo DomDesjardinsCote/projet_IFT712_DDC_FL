@@ -18,13 +18,14 @@ from sklearn.svm import SVC
 
 def main():
 
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 6:
         error = "\n Error: The number of parameter is wrong\
                 \n\n\t python Classifier.py model_type validation\
                 \n\n\t model_type: 1 to 6 and 7 for all model\
                 \n\t cross_validation: 0-1\
                 \n\t Evaluation of the model : 0-1\
-                \n\t Performance of the model(Learning Curve) : 0-1"
+                \n\t Performance of the model(Learning Curve) : 0-1\
+                \n\t Bagging: 0-1\n""
         print(error)
         return
 
@@ -32,6 +33,7 @@ def main():
     cross_val = bool(int(sys.argv[2]))
     eval_model = bool(int(sys.argv[3]))
     perf_model = bool(int(sys.argv[4]))
+    bagging = bool(int(sys.argv[5]))
 
     # Load database
     print("Loading Database")
@@ -43,7 +45,10 @@ def main():
     num_neural_per_layer = 400
     layer_sizes = (num_neural_per_layer,)*num_layer
     Specific_tuple = (200,)
-    Specific_tuple2 = (200, 400, 620,56,57,58,59,50,59,58,57,356, 600)
+    Specific_tuple2 = (200, 400, 600, 620)
+
+    # Bagging
+    number_model = 50
 
     md = None
     title = None

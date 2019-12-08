@@ -240,14 +240,17 @@ class ModelDecisionTree:
 
 
 class Perceptron:
-    def __init__(self, num_features, num_classes, lamb=0.0001):
+    def __init__(self, num_features, num_classes, lamb=0.0001, r_s=0):
         self.lamb = lamb
-        self.model = None
+        self.model = sklearn.linear_model.Perceptron(penalty='l2', alpha=self.lamb, max_iter=1000, random_state=r_s)
 
     def train(self, x_train, y_train):
-        self.model = sklearn.linear_model.Perceptron(penalty='l2', alpha=self.lamb)
+
         self.model.fit(x_train, y_train)
-        accuracy_train = self.model.score(x_train, y_train)
+        print "Result train accuracy:", self.model.score(x_train, y_train)
+        prediction = self.prediction(x_train)
+        Confusion_M = sklearn.metrics.confusion_matrix(y_train, prediction)
+        print "Confusion matrix:", Confusion_M
 
     def prediction(self, x):
         if len(x.shape)==1:
@@ -255,13 +258,6 @@ class Perceptron:
         predict = self.model.predict(x)
 
         return predict
-
-    def erreur_perceptron(self, x, y):
-        y = int(y)
-        prediction = int(self.prediction(x))
-        #score_bad_class = np.dot(self.w[prediction-1], x)
-        #score_good_class = np.dot(self.w[y-1], x)
-        return score_bad_class - score_good_class
 
     def cross_validation(self, X, y, k_fold=10):
         best_accuracy = 0.0
@@ -309,16 +305,15 @@ class Perceptron:
 
 
 class MLPerceptron:
-    def __init__(self, num_features, hidden_layer_sizes, num_classes, activation='relu', reg=0.0001):
+    def __init__(self, num_features, hidden_layer_sizes, num_classes, activation='relu', reg=0.0001, r_s=0):
         self.reg = reg
         self.hidden_layer_sizes = hidden_layer_sizes
-        self.model = None
         self.activation = activation
-
-    def train(self, x_train, y_train):
         self.model = sklearn.neural_network.MLPClassifier(self.hidden_layer_sizes,
                                                         activation=self.activation,
-                                                        alpha=self.reg, max_iter=1000)
+                                                        alpha=self.reg, max_iter=1000, random_state=r_s)
+
+    def train(self, x_train, y_train):
         self.model.fit(x_train, y_train)
         accu = self.model.score(x_train, y_train)
         print "Result train accuracy:", self.model.score(x_train, y_train)
@@ -331,31 +326,6 @@ class MLPerceptron:
         if len(x.shape)==1:
             x = np.reshape(x, (1, x.shape[0]))
         return self.model.predict(x)
-    
-    def erreur(self, x, y):
-        if len(x.shape)==1:
-            x = np.reshape(x, (1, x.shape[0]))
-        y = int(y)
-        prediction = int(self.prediction(x))
-        W = self.model.coefs_
-        x_prime = np.dot(x, W[0])
-        x_prime_prime = np.maximum(x_prime, 0)
-        print "x'", x_prime
-        print "x''", x_prime_prime
-        out = np.dot(x_prime_prime, W[1])
-        summ = np.sum(out, axis=1)
-        print "summ", summ
-        print out, out.shape
-        out_2 = out / summ
-        print out_2
-        print W[1].shape
-        print W[0].shape
-        print len(W)
-        soft_predict = self.model.predict_proba(x)
-        print "True prediction", y
-        print "prediction", prediction
-        print "soft_predict", soft_predict
-        return
 
     def cross_validation(self, X, y, k_fold=5):
         best_accuracy = 0.0
@@ -401,3 +371,53 @@ class MLPerceptron:
         prediction = self.prediction(X)
         Confusion_M = sklearn.metrics.confusion_matrix(y, prediction)
         print "Confusion matrix:", Confusion_M
+
+class LogisticRegression:
+    def __init__(self, lamb_inv=1.0, reg_penalty='l2', k_fold=5, r_s=0):
+        self.lamb_inv = lamb_inv
+        self.reg_penalty = reg_penalty
+        self.k_fold = k_fold
+        self.model = sklearn.linear_model.LogisticRegression(penalty=self.reg_penalty, C=self.lamb_inv,
+                                                             max_iter=1000, random_state=r_s)
+
+    def train(self, x_train, y_train):
+        self.model.fit(x_train, y_train)
+        accuracy_train = self.model.score(x_train, y_train)
+        print accuracy_train
+
+    def prediction(self, x):
+        if len(x.shape)==1:
+            x = np.reshape(x, (1, x.shape[0]))
+        predict = self.model.predict(x)
+
+        return predict
+
+    def cross_validation(self, X, y, k_fold=10):
+        self.model = sklearn.linear_model.LogisticRegressionCV(penalty=self.reg_penalty,
+                                                               cv=self.k_fold, max_iter=1000)
+        self.model.fit(X, y)
+        print "Result train accuracy:", self.model.score(X, y)
+        prediction = self.prediction(X)
+        Confusion_M = sklearn.metrics.confusion_matrix(y, prediction)
+        print "Confusion matrix:", Confusion_M
+
+class Bagging:
+    def __init__(self, all_model=None, number_model=50, learning_rate=1.0):
+        self.all_model = all_model
+        self.number_model = number_model
+        self.learning_rate = learning_rate
+    
+    def train(self, x_train, y_train):
+        for i in range(self.number_model):
+            curr_model = self.all_model[i].model
+            curr_model.fit(x_train, y_train)
+            self.all_model.append(curr_model)
+
+    def prediction(self, x):
+        all_predict = np.zeros((x.shape[0], self.number_model))
+        for i in range(self.number_model):
+            curr_predict = self.all_model[i].prediction(x)
+            all_predict[:,i] = curr_predict
+        all_predict = all_predict.astype(np.int)
+        final_predict = np.argmax(np.apply_along_axis(np.bincount, axis=1, arr=all_predict, minlength=8),axis=1)
+        return final_predict
