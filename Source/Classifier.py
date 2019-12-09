@@ -56,28 +56,42 @@ def main():
     if type_model == 1:
         print("Selecting Perceptron")
         title = "Model 1"
-        md = Model.Perceptron(55,7)
+        if bagging:
+            md = Model.Bagging(base_model='Perceptron', number_model=number_model, 
+                               reg_penalty='l2', reg=0.001)
+        else:
+            md = Model.Perceptron(reg_penalty='l2', reg=0.001, k_fold=5)
+
     elif type_model == 2:
         print("Selecting MLPerceptron")
         title = "Model 2"
-        md = Model.MLPerceptron(55, Specific_tuple, 7)
+        if bagging:
+            md = Model.Bagging(base_model='MLPerceptron', number_model=number_model, 
+                               hidden_layer_sizes=Specific_tuple, activation='relu', 
+                               reg=0.001)
+        else:
+            md = Model.MLPerceptron(hidden_layer_sizes=Specific_tuple, activation='relu', 
+                                    reg=0.001, k_fold=5)
+
     elif type_model == 3:
         print("Selecting Decision Tree")
         title = "Model 3"
         md = Model.ModelDecisionTree()
+
     elif type_model == 4:
         print("Selecting SVM")
         title = "Model 4"
         md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
+
     elif type_model == 5:
-        print("TODO : Selecting model 5...")
+        print("Selecting Logistic Regression")
         title = "Model 5"
-    elif type_model == 6:
-        print("TODO : Selecting model 6...")
-        title = "Model 6"
-    elif type_model == 7:
-        print("TODO : Testing all models with same data.")
-        title = "Model 7"
+        if bagging:
+            md = Model.Bagging(base_model='LogisticRegression', number_model=number_model, 
+                               reg_penalty='l2', reg=1.0)
+        else:
+            md = Model.LogisticRegression(reg_penalty='l2', reg_inv=1.0, k_fold=5)
+
     else:
         print("Error : No model is train.")
 

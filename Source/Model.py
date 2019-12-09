@@ -240,180 +240,333 @@ class ModelDecisionTree:
 
 
 class Perceptron:
-    def __init__(self, num_features, num_classes, lamb=0.0001, r_s=0):
-        self.lamb = lamb
-        self.model = sklearn.linear_model.Perceptron(penalty='l2', alpha=self.lamb, max_iter=1000, random_state=r_s)
+    def __init__(self, reg_penalty='l2', reg=0.001, k_fold=5, random_state=0):
+        """
+        Initialize the parameters of the perceptron model.
+        reg_penalty = Type of regularization to be used on the parameters
+        reg = Constant that multiplies the regularization term if used
+        k_fold = The number of folds used for the cross-validation
+        random_state = The seed to use when shuffling the data.
+                       Useful to generate multiple model with same data for bagging
+        """
+        print("Initialize model Perceptron")
+        self.reg_penalty = reg_penalty
+        self.reg = reg
+        self.k_fold = k_fold
+        self.random_state = random_state
+        self.model = sklearn.linear_model.Perceptron(penalty=reg_penalty,
+                                                     alpha=self.reg,
+                                                     max_iter=1000,
+                                                     random_state=self.random_state)
 
-    def train(self, x_train, y_train):
-
-        self.model.fit(x_train, y_train)
-        print "Result train accuracy:", self.model.score(x_train, y_train)
-        prediction = self.prediction(x_train)
-        Confusion_M = sklearn.metrics.confusion_matrix(y_train, prediction)
-        print "Confusion matrix:", Confusion_M
+    def train(self, x, t):
+        """
+        Training the Perceptron model with the data
+        x : A numpy array of the features dataset (n_samples, n_features)
+        t : A numpy array of the class label (n_sample)
+        """
+        self.model.fit(x, t)
 
     def prediction(self, x):
+        """
+        Predict the classes label given the features data
+        x : A numpy array of the features for one sample data (n_features) or
+            a set (n_samples, n_features)
+        return : The predict classes label from the model
+        Comments : The method "train" must have been call previously
+        """
         if len(x.shape)==1:
             x = np.reshape(x, (1, x.shape[0]))
         predict = self.model.predict(x)
-
         return predict
 
-    def cross_validation(self, X, y, k_fold=10):
+    def cross_validation(self, x, t):
+        """
+        Do a k_fold cross validation on the hyper parameters.
+        The hyper-parameters are
+        reg : 10^-3 to 10^3 with a log scale
+        Parameters
+        x : A numpy array of the features dataset (n_samples, n_features)
+        t : A numpy array of the class label (n_sample)
+        """
+        # Initialize accuracy / hyperparameters
         best_accuracy = 0.0
+        best_reg = 0.0
+
+        # Cross-validation 80-20
         N = X.shape[0]
         N_train = int(math.floor(0.8 * N))
 
-        min_lamb = 0.000000001
-        max_lamb = 2.0
-        log_min_lamb = math.log(min_lamb)
-        log_max_lamb = math.log(max_lamb)
-        lamb_list = np.logspace(log_min_lamb, log_max_lamb, num=100, base=math.e)
+        # Initialize the grid seach hyperparameters
+        min_reg = 0.001
+        max_reg = 1000
+        log_min_reg = np.log(min_reg)
+        log_max_reg = np.log(max_reg)
+        reg_list = np.logspace(log_min_reg, log_max_reg, num=7, base=math.e)
 
-        best_lamb = self.lamb
-
-        for lamb in lamb_list:
-            self.lamb = lamb
-            print self.lamb
-            accuracy = np.zeros((k_fold))
-            for i in range(k_fold):
-                map_index = list(zip(X, y))
+        for reg in reg_list:
+            accuracy = np.zeros((self.k_fold))
+            for i in range(self.k_fold):
+                map_index = list(zip(x, t))
                 random.shuffle(map_index)
-                random_X, random_y = zip(*map_index)
+                random_x, random_t = zip(*map_index)
 
-                train_X = np.array(random_X[:N_train])
-                valid_X = random_X[N_train:]
-                train_y = np.array(random_y[:N_train])
-                valid_y = random_y[N_train:]
+                train_x = random_x[:N_train]
+                valid_x = random_x[N_train:]
+                train_t = random_t[:N_train]
+                valid_t = random_t[N_train:]
 
-                self.train(train_X, train_y)
-                accuracy[i] = self.model.score(valid_X, valid_y)
+                self.model = sklearn.linear_model.Perceptron(penalty=self.reg_penalty,
+                                                             alpha=reg,
+                                                             max_iter=1000,
+                                                             random_state=self.random_state)
+                self.train(train_x, train_t)
+                accuracy[i] = self.model.score(valid_x, valid_t)
 
             mean_accuracy = np.mean(accuracy)
-            print mean_accuracy
+            # print(mean_accuracy)
             if mean_accuracy > best_accuracy:
                 best_accuracy = mean_accuracy
-                best_lamb = self.lamb
-        self.lamb = best_lamb
-        self.train(X, y)
-        print "best lamb", best_lamb
-        print "best accuracy", best_accuracy
-        print "Result train accuracy:", self.model.score(X, y)
-        prediction = self.prediction(X)
-        Confusion_M = sklearn.metrics.confusion_matrix(y, prediction)
-        print "Confusion matrix:", Confusion_M
+                best_reg = reg
+                print("The new best hyperparameters are : ", best_reg)
+
+        print("Best hyperparameters are : ", best_reg)
+        print("Valid Accuracy :", best_accuracy)
+        self.reg = best_reg
+        self.model = sklearn.linear_model.Perceptron(penalty=self.reg_penalty,
+                                                     alpha=best_reg,
+                                                     max_iter=1000,
+                                                     random_state=self.random_state)
+        self.train(x, t)
 
 
 class MLPerceptron:
-    def __init__(self, num_features, hidden_layer_sizes, num_classes, activation='relu', reg=0.0001, r_s=0):
-        self.reg = reg
+    def __init__(self, hidden_layer_sizes, activation='relu', reg=0.001, k_fold=5, random_state=0):
+        """
+        Initialize the parameters of the multi-layer Perceptron.
+        hidden_layer_sizes = The ith element represents the number of neurons in the ith hidden layer
+        activation = Activation function for the hidden layer
+        reg = L2 penalty parameter
+        k_fold = The number of folds used for the cross-validation
+        random_state = The seed to use when shuffling the data.
+                       Useful to generate multiple model with same data for bagging
+        """
+        print("Initialize model Multi-layer Perceptron")
         self.hidden_layer_sizes = hidden_layer_sizes
         self.activation = activation
+        self.reg = reg
+        self.k_fold = k_fold
+        self.random_state = random_state
         self.model = sklearn.neural_network.MLPClassifier(self.hidden_layer_sizes,
                                                         activation=self.activation,
-                                                        alpha=self.reg, max_iter=1000, random_state=r_s)
+                                                        alpha=self.reg, max_iter=1000, 
+                                                        random_state=self.random_state)
 
-    def train(self, x_train, y_train):
-        self.model.fit(x_train, y_train)
-        accu = self.model.score(x_train, y_train)
-        print "Result train accuracy:", self.model.score(x_train, y_train)
-        prediction = self.prediction(x_train)
-        Confusion_M = sklearn.metrics.confusion_matrix(y_train, prediction)
-        print "Confusion matrix:", Confusion_M
-        #print accu
+    def train(self, x, t):
+        """
+        Training the Multi-layer Perceptron model with the data
+        x : A numpy array of the features dataset (n_samples, n_features)
+        t : A numpy array of the class label (n_sample)
+        """
+        self.model.fit(x, t)
 
     def prediction(self, x):
+        """
+        Predict the classes label given the features data
+        x : A numpy array of the features for one sample data (n_features) or
+            a set (n_samples, n_features)
+        return : The predict classes label from the model
+        Comments : The method "train" must have been call previously
+        """
         if len(x.shape)==1:
             x = np.reshape(x, (1, x.shape[0]))
         return self.model.predict(x)
 
-    def cross_validation(self, X, y, k_fold=5):
+    def cross_validation(self, x, t):
+        """
+        Do a k_fold cross validation on the hyper parameters.
+        The hyper-parameters are
+        reg : 10^-3 to 10^3 with a log scale
+        Parameters
+        x : A numpy array of the features dataset (n_samples, n_features)
+        t : A numpy array of the class label (n_sample)
+        """
+        # Initialize accuracy / hyperparameters
         best_accuracy = 0.0
+        best_reg = 0.0
+
+        # Cross-validation 80-20
         N = X.shape[0]
         N_train = int(math.floor(0.8 * N))
 
-        min_lamb = 0.000000001
-        max_lamb = 2.0
-        log_min_lamb = math.log(min_lamb)
-        log_max_lamb = math.log(max_lamb)
-        lamb_list = np.logspace(log_min_lamb, log_max_lamb, num=10, base=math.e)
+        # Initialize the grid search hyperparameters
+        min_reg = 0.001
+        max_reg = 1000
+        log_min_reg = np.log(min_reg)
+        log_max_reg = np.log(max_reg)
+        reg_list = np.logspace(log_min_reg, log_max_reg, num=7, base=math.e)
 
-        best_lamb = self.reg
-
-        for lamb in lamb_list:
-            print "lamb", lamb
-            self.reg = lamb
-            accuracy = np.zeros((k_fold))
-            for i in range(k_fold):
-                map_index = list(zip(X, y))
+        for reg in reg_list:
+            accuracy = np.zeros((self.k_fold))
+            for i in range(self.k_fold):
+                map_index = list(zip(x, t))
                 random.shuffle(map_index)
-                random_X, random_y = zip(*map_index)
+                random_x, random_t = zip(*map_index)
 
-                train_X = np.array(random_X[:N_train])
-                valid_X = random_X[N_train:]
-                train_y = np.array(random_y[:N_train])
-                valid_y = random_y[N_train:]
+                train_x = random_x[:N_train]
+                valid_x = random_x[N_train:]
+                train_t = random_t[:N_train]
+                valid_t = random_t[N_train:]
 
-                self.train(train_X, train_y)
-                accuracy[i] = self.model.score(valid_X, valid_y)
-                
+                self.model = sklearn.neural_network.MLPClassifier(self.hidden_layer_sizes,
+                                                        activation=self.activation,
+                                                        alpha=reg, max_iter=1000, 
+                                                        random_state=self.random_state)
+                self.train(train_x, train_t)
+                accuracy[i] = self.model.score(valid_x, valid_t)
 
             mean_accuracy = np.mean(accuracy)
+            # print(mean_accuracy)
             if mean_accuracy > best_accuracy:
                 best_accuracy = mean_accuracy
-                best_lamb = self.reg
-            print mean_accuracy
+                best_reg = reg
+                print("The new best hyperparameters are : ", best_reg)
+
+        print("Best hyperparameters are : ", best_reg)
+        print("Valid Accuracy :", best_accuracy)
         self.reg = best_lamb
-        self.train(X, y)
-        print "best lamb", best_lamb
-        print "best accuracy", best_accuracy
-        print "Result train accuracy:", self.model.score(X, y)
-        prediction = self.prediction(X)
-        Confusion_M = sklearn.metrics.confusion_matrix(y, prediction)
-        print "Confusion matrix:", Confusion_M
+        self.model = sklearn.neural_network.MLPClassifier(self.hidden_layer_sizes,
+                                                          activation=self.activation,
+                                                          alpha=best_reg, max_iter=1000, 
+                                                          random_state=self.random_state)
+        self.train(x, t)
+
 
 class LogisticRegression:
-    def __init__(self, lamb_inv=1.0, reg_penalty='l2', k_fold=5, r_s=0):
-        self.lamb_inv = lamb_inv
+    def __init__(self, reg_penalty='l2', reg_inv=1.0, k_fold=5, random_state=0):
+        """
+        Initialize the parameters of the Logistic Regression for Classification.
+        reg_penalty = Type of regularization to be used on the parameters
+        reg_inv = Inverse of regularization strength
+        random_state = The seed to use when shuffling the data.
+                       Useful to generate multiple model with same data for bagging
+        k_fold = The number of folds used for the cross-validation
+        """
+        print("Initialize model Logistic Regression")
         self.reg_penalty = reg_penalty
+        self.reg_inv = reg_inv
         self.k_fold = k_fold
-        self.model = sklearn.linear_model.LogisticRegression(penalty=self.reg_penalty, C=self.lamb_inv,
-                                                             max_iter=1000, random_state=r_s)
+        self.random_state = random_state
+        self.model = sklearn.linear_model.LogisticRegression(penalty=self.reg_penalty,
+                                                             C=self.reg_inv,
+                                                             max_iter=1000, 
+                                                             random_state=self.random_state)
 
-    def train(self, x_train, y_train):
-        self.model.fit(x_train, y_train)
-        accuracy_train = self.model.score(x_train, y_train)
-        print accuracy_train
+    def train(self, x, t):
+        """
+        Training the Logistic Regression classification model with the data
+        x : A numpy array of the features dataset (n_samples, n_features)
+        t : A numpy array of the class label (n_sample)
+        """
+        self.model.fit(x, t)
 
     def prediction(self, x):
+        """
+        Predict the classes label given the features data
+        x : A numpy array of the features for one sample data (n_features) or
+            a set (n_samples, n_features)
+        return : The predict classes label from the model
+        Comments : The method "train" must have been call previously
+        """
         if len(x.shape)==1:
             x = np.reshape(x, (1, x.shape[0]))
         predict = self.model.predict(x)
 
         return predict
 
-    def cross_validation(self, X, y, k_fold=10):
+    def cross_validation(self, x, t):
+        # Here, we can use the built in cross validation for logistic Regression
         self.model = sklearn.linear_model.LogisticRegressionCV(penalty=self.reg_penalty,
                                                                cv=self.k_fold, max_iter=1000)
-        self.model.fit(X, y)
-        print "Result train accuracy:", self.model.score(X, y)
-        prediction = self.prediction(X)
-        Confusion_M = sklearn.metrics.confusion_matrix(y, prediction)
-        print "Confusion matrix:", Confusion_M
+        self.model.fit(x, t)
+
 
 class Bagging:
-    def __init__(self, all_model=None, number_model=50, learning_rate=1.0):
-        self.all_model = all_model
+    def __init__(self, base_model='LogisticRegression', number_model=50, 
+                 hidden_layer_sizes=(100,), activation='relu',
+                 kernel='poly', degree=3, coef0=0, gamma='auto',
+                 criterion='gini', reg_penalty='l2', reg=0.001):
+        """
+        Initialise the parameters of a Bagging algorithm
+        base_model = Base model on which we want to train multiple time
+        ('Perceptron', 'MLPerceptron', 'ModelSVM', 'ModelDecisionTree', 'LogisticRegression')
+        number_model = Number of base_model train to generate the Bagging model
+        hidden_layer_sizes = The ith element represents the number of neurons in the ith hidden layer
+                             Used if base_model is 'MLPerceptron'
+        activation =  Activation function for the hidden layer
+                      Used if base_model is 'MLPerceptron'
+        kernel = Name of a kernel (linear, poly, rbf, sigmoid)
+                 Used if base_model is 'ModelSVM'
+        degree = Polynomial degree
+                 Used if base_model is 'ModelSVM'
+        coef0 = coef0 of the linear kernel
+                Used if base_model is 'ModelSVM'
+        gamma = Hyperparameters for kernel (poly, rbf, sigmoid)
+                Used if base_model is 'ModelSVM'
+        criterion = The function to measure the quality of a split
+                    Used if base_model is 'ModelDecisionTree'
+        reg_penalty = Type of regularization to be used on the parameters
+                      Used if base_model is 'Perceptron' or 'LogisticRegression'
+        reg = Constant that multiplies the regularization term if used
+        """
         self.number_model = number_model
-        self.learning_rate = learning_rate
-    
-    def train(self, x_train, y_train):
+
+        # Initialise all_model list
+        self.all_model = []
+        for i in range(number_model):
+            if base_model=='Perceptron':
+                curr_model = Perceptron(reg_penalty=reg_penalty, reg=reg,
+                                        random_state=i)
+                self.all_model.append(curr_model.model)
+            elif base_model=='MLPerceptron':
+                curr_model = MLPerceptron(hidden_layer_sizes=hidden_layer_sizes,
+                                                activation=activation, reg=reg, random_state=i)
+                self.all_model.append(curr_model.model)
+            elif base_model=='LogisticRegression':
+                curr_model = LogisticRegression(reg_penalty=reg_penalty,
+                                                      reg_inv=reg, random_state=i)
+                self.all_model.append(curr_model.model)
+            elif base_model=='ModelSVM':
+                # TODO : add random state AND self.mod ---> self.model
+                curr_model = ModelSVM(kernel=kernel, degree=degree, coef0=coef0,
+                                            gamma=gamma, reg=reg)
+                self.all_model.append(curr_model.model)
+            elif base_model=='ModelDecisionTree':
+                # TODO : add random state AND self.mod ---> self.model
+                curr_model = Model.ModelDecisionTree(criterion=criterion)
+                self.all_model.append(curr_model.model)
+
+    def train(self, x, t):
+        """
+        Training all model with the data
+        x : A numpy array of the features dataset (n_samples, n_features)
+        t : A numpy array of the class label (n_sample)
+        """
         for i in range(self.number_model):
-            curr_model = self.all_model[i].model
-            curr_model.fit(x_train, y_train)
-            self.all_model.append(curr_model)
+            curr_model = self.all_model[i]
+            curr_model.fit(x, t)
 
     def prediction(self, x):
+        """
+        Predict the classes label given the features data
+        x : A numpy array of the features for one sample data (n_features) or
+            a set (n_samples, n_features)
+        return : The predict classes label the most popular across all model
+        Comments : The method "train" must have been call previously
+        """
+        if len(x.shape)==1:
+            x = np.reshape(x, (1, x.shape[0]))
+
         all_predict = np.zeros((x.shape[0], self.number_model))
         for i in range(self.number_model):
             curr_predict = self.all_model[i].prediction(x)
