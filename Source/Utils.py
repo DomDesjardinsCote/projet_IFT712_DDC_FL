@@ -99,7 +99,7 @@ class ModelAnalyzer:
                           alpha=0.15, color="blue")
 
         plot.legend(loc="best")
-        return plot
+        return plot, test_scores_mean
 
     def confusionMatrix(self, t, pred):
         """
@@ -115,6 +115,7 @@ class ModelAnalyzer:
         Compute the accuracy of the model
         :param t: A numpy array of the classes from the dataset
         :param pred: A numpy array of the predicted classes from a model.
+        :param normalize: Normalize the score.
         :return: A float the accuracy.
         """
 
