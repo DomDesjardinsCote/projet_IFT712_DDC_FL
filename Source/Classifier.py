@@ -25,7 +25,7 @@ def main():
                 \n\t cross_validation: 0-1\
                 \n\t Evaluation of the model : 0-1\
                 \n\t Performance of the model(Learning Curve) : 0-1\
-                \n\t Bagging: 0-1\n""
+                \n\t Bagging: 0-1\n"
         print(error)
         return
 
@@ -87,7 +87,7 @@ def main():
         title = "Model 4"
         if bagging:
             md = Model.Bagging(base_model='ModelDecisionTree', number_model=number_model,
-                               kernel="poly", degree=2,  verbose=True)
+                               kernel="poly", degree=2)
         else:
             md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
 

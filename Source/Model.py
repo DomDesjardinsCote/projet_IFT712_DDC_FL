@@ -541,7 +541,7 @@ class Bagging:
                                             gamma=gamma, reg=reg, random_state=i)
                 self.all_model.append(curr_model.model)
             elif base_model=='ModelDecisionTree':
-                curr_model = Model.ModelDecisionTree(criterion=criterion, random_state=i)
+                curr_model = ModelDecisionTree(criterion=criterion, random_state=i)
                 self.all_model.append(curr_model.model)
 
     def train(self, x, t):
@@ -567,7 +567,7 @@ class Bagging:
 
         all_predict = np.zeros((x.shape[0], self.number_model))
         for i in range(self.number_model):
-            curr_predict = self.all_model[i].prediction(x)
+            curr_predict = self.all_model[i].predict(x)
             all_predict[:,i] = curr_predict
         all_predict = all_predict.astype(np.int)
         final_predict = np.argmax(np.apply_along_axis(np.bincount, axis=1, arr=all_predict, minlength=8),axis=1)
