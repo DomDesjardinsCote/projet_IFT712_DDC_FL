@@ -537,13 +537,11 @@ class Bagging:
                                                       reg_inv=reg, random_state=i)
                 self.all_model.append(curr_model.model)
             elif base_model=='ModelSVM':
-                # TODO : add random state AND self.mod ---> self.model
                 curr_model = ModelSVM(kernel=kernel, degree=degree, coef0=coef0,
-                                            gamma=gamma, reg=reg)
+                                            gamma=gamma, reg=reg, random_state=i)
                 self.all_model.append(curr_model.model)
             elif base_model=='ModelDecisionTree':
-                # TODO : add random state AND self.mod ---> self.model
-                curr_model = Model.ModelDecisionTree(criterion=criterion)
+                curr_model = Model.ModelDecisionTree(criterion=criterion, random_state=i)
                 self.all_model.append(curr_model.model)
 
     def train(self, x, t):

@@ -76,12 +76,20 @@ def main():
     elif type_model == 3:
         print("Selecting Decision Tree")
         title = "Model 3"
-        md = Model.ModelDecisionTree()
+        if bagging:
+            md = Model.Bagging(base_model='ModelDecisionTree', number_model=number_model,
+                               criterion='gini')
+        else:
+            md = Model.ModelDecisionTree(criterion='gini')
 
     elif type_model == 4:
         print("Selecting SVM")
         title = "Model 4"
-        md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
+        if bagging:
+            md = Model.Bagging(base_model='ModelDecisionTree', number_model=number_model,
+                               kernel="poly", degree=2,  verbose=True)
+        else:
+            md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
 
     elif type_model == 5:
         print("Selecting Logistic Regression")
