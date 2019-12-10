@@ -5,24 +5,27 @@
 #            Example : python Classifier.py 1 1
 #
 
-
+import matplotlib.pyplot as plot
 import numpy as np
 import sys
-import DataManager as DM      ## remove comment when it's work##
+
+import DataManager as DM
 import Model
 import Utils
+
 from sklearn.svm import SVC
-import matplotlib.pyplot as plot
+
 
 def main():
 
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 6:
         error = "\n Error: The number of parameter is wrong\
                 \n\n\t python Classifier.py model_type validation\
                 \n\n\t model_type: 1 to 6 and 7 for all model\
                 \n\t cross_validation: 0-1\
                 \n\t Evaluation of the model : 0-1\
-                \n\t Performance of the model(Learning Curve) : 0-1"
+                \n\t Performance of the model(Learning Curve) : 0-1\
+                \n\t Bagging: 0-1\n""
         print(error)
         return
 
@@ -30,36 +33,73 @@ def main():
     cross_val = bool(int(sys.argv[2]))
     eval_model = bool(int(sys.argv[3]))
     perf_model = bool(int(sys.argv[4]))
+    bagging = bool(int(sys.argv[5]))
 
     # Load database
-    print("Loading Database...")
+    print("Loading Database")
     dm = DM.DataManager(200, 100, normalisation=False)
     x_train, t_train, x_test, t_test = dm.generer_donnees()
+
+    # Deep layer
+    num_layer = 20
+    num_neural_per_layer = 400
+    layer_sizes = (num_neural_per_layer,)*num_layer
+    Specific_tuple = (200,)
+    Specific_tuple2 = (200, 400, 600, 620)
+
+    # Bagging
+    number_model = 50
 
     md = None
     title = None
     # Selection of the model
     if type_model == 1:
-        print("TODO : Selecting model 1...")
+        print("Selecting Perceptron")
         title = "Model 1"
+        if bagging:
+            md = Model.Bagging(base_model='Perceptron', number_model=number_model, 
+                               reg_penalty='l2', reg=0.001)
+        else:
+            md = Model.Perceptron(reg_penalty='l2', reg=0.001, k_fold=5)
+
     elif type_model == 2:
-        print("TODO : Selecting model 2...")
+        print("Selecting MLPerceptron")
         title = "Model 2"
+        if bagging:
+            md = Model.Bagging(base_model='MLPerceptron', number_model=number_model, 
+                               hidden_layer_sizes=Specific_tuple, activation='relu', 
+                               reg=0.001)
+        else:
+            md = Model.MLPerceptron(hidden_layer_sizes=Specific_tuple, activation='relu', 
+                                    reg=0.001, k_fold=5)
+
     elif type_model == 3:
-        md = Model.ModelDecisionTree()
+        print("Selecting Decision Tree")
         title = "Model 3"
+        if bagging:
+            md = Model.Bagging(base_model='ModelDecisionTree', number_model=number_model,
+                               criterion='gini')
+        else:
+            md = Model.ModelDecisionTree(criterion='gini')
+
     elif type_model == 4:
-        md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
+        print("Selecting SVM")
         title = "Model 4"
+        if bagging:
+            md = Model.Bagging(base_model='ModelDecisionTree', number_model=number_model,
+                               kernel="poly", degree=2,  verbose=True)
+        else:
+            md = Model.ModelSVM(kernel="poly", degree=2,  verbose=True)
+
     elif type_model == 5:
-        print("TODO : Selecting model 5...")
+        print("Selecting Logistic Regression")
         title = "Model 5"
-    elif type_model == 6:
-        print("TODO : Selecting model 6...")
-        title = "Model 6"
-    elif type_model == 7:
-        print("TODO : Testing all models with same data.")
-        title = "Model 7"
+        if bagging:
+            md = Model.Bagging(base_model='LogisticRegression', number_model=number_model, 
+                               reg_penalty='l2', reg=1.0)
+        else:
+            md = Model.LogisticRegression(reg_penalty='l2', reg_inv=1.0, k_fold=5)
+
     else:
         print("Error : No model is train.")
 
