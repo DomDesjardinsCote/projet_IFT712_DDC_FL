@@ -8,7 +8,7 @@ import os
 
 
 class DataManager:
-    def __init__(self, nb_train, nb_test, normalisation=True, bias=True):
+    def __init__(self, nb_train, nb_test, normalisation=False, bias=True):
         self.nb_train = nb_train
         self.nb_test = nb_test
         self.normalisation = normalisation
@@ -17,10 +17,12 @@ class DataManager:
     def generer_donnees(self):
         base_dir = os.path.join( os.path.dirname ( __file__), '..' )
         csv = pd.read_csv(base_dir + "/Database/train.csv")
-        data = np.array(csv, dtype=np.int)
+        data = np.array(csv, dtype=np.int).astype(np.float)
+        
 
         X_ = data[:,1:-1]
-        y_ = data[:,-1:] 
+        y_ = data[:,-1:]
+        y_ = np.reshape(y_, (y_.shape[0]))
 
         # Centrer et réduire les données (moyenne = 0, écart-type = 1)
         if self.normalisation:
