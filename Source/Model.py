@@ -208,7 +208,7 @@ class ModelDecisionTree:
                         bestMax_depth = d
                         print("The new best hyper parameters are : ", bestMax_depth, bestCriteria)
 
-        print("Best hyper parameters are : ", bestMax_depth, bestCriteria, bestPcaDim)
+        print("Best hyper parameters are : ", bestMax_depth, bestCriteria)
         print("Validation error : ", 100 * bestError, "%")
         self.model = tree.DecisionTreeClassifier(max_depth=bestMax_depth, criterion=bestCriteria)
         self.train(x, t)
@@ -235,8 +235,6 @@ class ModelDecisionTree:
             return 0
         else:
             return 1
-
-        print("Error Model 1...")
 
 
 class Perceptron:
@@ -294,7 +292,7 @@ class Perceptron:
         best_reg = 0.0
 
         # Cross-validation 80-20
-        N = X.shape[0]
+        N = x.shape[0]
         N_train = int(math.floor(0.8 * N))
 
         # Initialize the grid seach hyperparameters
@@ -396,7 +394,7 @@ class MLPerceptron:
         best_reg = 0.0
 
         # Cross-validation 80-20
-        N = X.shape[0]
+        N = x.shape[0]
         N_train = int(math.floor(0.8 * N))
 
         # Initialize the grid search hyperparameters
@@ -434,7 +432,7 @@ class MLPerceptron:
 
         print("Best hyperparameters are : ", best_reg)
         print("Valid Accuracy :", best_accuracy)
-        self.reg = best_lamb
+        self.reg = best_reg
         self.model = sklearn.neural_network.MLPClassifier(self.hidden_layer_sizes,
                                                           activation=self.activation,
                                                           alpha=best_reg, max_iter=1000, 
@@ -494,8 +492,8 @@ class LogisticRegression:
 class Bagging:
     def __init__(self, base_model='LogisticRegression', number_model=50, 
                  hidden_layer_sizes=(100,), activation='relu',
-                 kernel='poly', degree=3, coef0=0, gamma='auto',
-                 criterion='gini', reg_penalty='l2', reg=0.001):
+                 kernel='poly', degree=3, gamma='auto',
+                 criterion='gini', reg_penalty='l2', reg=0.001, random_state=0):
         """
         Initialise the parameters of a Bagging algorithm
         base_model = Base model on which we want to train multiple time
@@ -509,8 +507,6 @@ class Bagging:
                  Used if base_model is 'ModelSVM'
         degree = Polynomial degree
                  Used if base_model is 'ModelSVM'
-        coef0 = coef0 of the linear kernel
-                Used if base_model is 'ModelSVM'
         gamma = Hyperparameters for kernel (poly, rbf, sigmoid)
                 Used if base_model is 'ModelSVM'
         criterion = The function to measure the quality of a split
@@ -520,28 +516,28 @@ class Bagging:
         reg = Constant that multiplies the regularization term if used
         """
         self.number_model = number_model
-
+        r = random_state
         # Initialise all_model list
         self.all_model = []
         for i in range(number_model):
             if base_model=='Perceptron':
                 curr_model = Perceptron(reg_penalty=reg_penalty, reg=reg,
-                                        random_state=i)
+                                        random_state=i+r*100)
                 self.all_model.append(curr_model.model)
             elif base_model=='MLPerceptron':
                 curr_model = MLPerceptron(hidden_layer_sizes=hidden_layer_sizes,
-                                                activation=activation, reg=reg, random_state=i)
+                                                activation=activation, reg=reg, random_state=i+r*100)
                 self.all_model.append(curr_model.model)
             elif base_model=='LogisticRegression':
                 curr_model = LogisticRegression(reg_penalty=reg_penalty,
-                                                      reg_inv=reg, random_state=i)
+                                                      reg_inv=reg, random_state=i+r*100)
                 self.all_model.append(curr_model.model)
             elif base_model=='ModelSVM':
-                curr_model = ModelSVM(kernel=kernel, degree=degree, coef0=coef0,
-                                            gamma=gamma, reg=reg, random_state=i)
+                curr_model = ModelSVM(kernel=kernel, degree=degree,
+                                            gamma=gamma, reg=reg, random_state=i+r*100)
                 self.all_model.append(curr_model.model)
             elif base_model=='ModelDecisionTree':
-                curr_model = ModelDecisionTree(criterion=criterion, random_state=i)
+                curr_model = ModelDecisionTree(criterion=criterion, random_state=i+r*100)
                 self.all_model.append(curr_model.model)
 
     def train(self, x, t):
