@@ -21,7 +21,7 @@ class ModelAnalyzer:
         """
         plot.figure()
         plot.title(title)
-        plot.xlabel("Training examples")
+        plot.xlabel("Number of data")
         plot.ylabel("Score")
 
         train_sizes, train_scores, test_scores = learning_curve(estimator, X, t, cv=cv, train_sizes=train_sizes)
